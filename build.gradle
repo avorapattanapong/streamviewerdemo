@@ -1,28 +1,82 @@
 buildscript {
-	ext {
-		springBootVersion = '2.1.2.RELEASE'
-	}
-	repositories {
-		mavenCentral()
-	}
-	dependencies {
-		classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
-	}
+    ext {
+        springBootVersion = '2.1.2.RELEASE'
+        mooWorkNodePluginVersion = '1.2.0'
+    }
+    repositories {
+        mavenCentral()
+        maven { url "https://repo.spring.io/snapshot" }
+        maven { url "https://repo.spring.io/milestone" }
+        maven { url "https://plugins.gradle.org/m2/" }
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+        classpath("com.moowork.gradle:gradle-node-plugin:${mooWorkNodePluginVersion}")
+    }
 }
 
 apply plugin: 'java'
 apply plugin: 'org.springframework.boot'
 apply plugin: 'io.spring.dependency-management'
+apply plugin: "com.moowork.node"
 
 group = 'com.athikom.streamlabsdemo'
 version = '0.0.1-SNAPSHOT'
 sourceCompatibility = '1.8'
 
 repositories {
-	mavenCentral()
+    mavenCentral()
 }
 
 dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter'
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    compile 'org.springframework:spring-webmvc:5.1.4.RELEASE'
+    compile('org.eclipse.jetty:jetty-webapp:9.+')
+    compile('org.eclipse.jetty:jetty-jsp:9.+')
+    compile('org.springframework.boot:spring-boot-starter-actuator')
+    compile('org.springframework.boot:spring-boot-starter-cache')
+    compile('org.springframework.boot:spring-boot-starter-groovy-templates')
+    compile('org.springframework.boot:spring-boot-starter-security')
+    compile('org.springframework.session:spring-session-core')
+    compile("org.springframework.boot:spring-boot-devtools")
+    compile("org.springframework.boot:spring-boot-starter-thymeleaf")
+    compile("nz.net.ultraq.thymeleaf:thymeleaf-layout-dialect")
+
+    testCompile('org.springframework.boot:spring-boot-starter-test')
+    testCompile('org.springframework.security:spring-security-test')
+}
+
+task generatei18nPropertiesFile {
+    def jsonSrc = "src/main/resources/i18n/json/data.json"
+    def propertiesDestPath = "src/main/resources/i18n/properties"
+    def folder = new File(propertiesDestPath)
+    if(!folder.exists()){
+        folder.mkdirs()
+    }
+    doLast {
+        def jsonFile = file(jsonSrc)
+        def parsedJson = new groovy.json.JsonSlurper().parseText(jsonFile.text)
+        parsedJson.each {k,v ->
+            def propertyFile = file "${propertiesDestPath}/messages_${k}.properties"
+            writePropertiesFile(propertyFile, v, "GENERATED FILE. DO NOT EDIT.")
+        }
+    }
+}
+
+ext.writePropertiesFile = { File file, Map values, String comments ->
+    def props = new Properties()
+    values.each { key, value ->
+        props.setProperty(key, value)
+    }
+    file.withWriter { props.store(it, comments) }
+}
+
+processResources.dependsOn 'generatei18nPropertiesFile'
+
+clean {
+    delete file('src/main/resources/static/dist')
+    ant.delete() {
+        fileset(dir: 'src/main/resources/i18n/properties') {
+            include(name: "*.properties")
+        }
+    }
 }
