@@ -28,6 +28,16 @@ repositories {
     mavenCentral()
 }
 
+node {
+    download = true
+    // Set the work directory where node_modules should be located
+    nodeModulesDir = file("${project.projectDir}/src/main/frontend")
+}
+
+configurations {
+    compile.exclude module: "spring-boot-starter-tomcat"
+}
+
 dependencies {
     compile 'org.springframework:spring-webmvc:5.1.4.RELEASE'
     compile('org.eclipse.jetty:jetty-webapp:9.+')
@@ -80,3 +90,9 @@ clean {
         }
     }
 }
+
+task webpack(type: NodeTask, dependsOn: npmInstall) {
+    script = project.file('node_modules/.bin/webpack')
+}
+
+processResources.dependsOn 'webpack'
