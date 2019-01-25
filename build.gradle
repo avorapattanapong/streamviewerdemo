@@ -39,7 +39,8 @@ configurations {
 }
 
 dependencies {
-    compile 'org.springframework:spring-webmvc:5.1.4.RELEASE'
+    compile('org.springframework.security.oauth.boot:spring-security-oauth2-autoconfigure:2.0.1.RELEASE')
+    compile('org.springframework:spring-webmvc:5.1.4.RELEASE')
     compile('org.eclipse.jetty:jetty-webapp:9.+')
     compile('org.eclipse.jetty:jetty-jsp:9.+')
     compile('org.springframework.boot:spring-boot-starter-actuator')

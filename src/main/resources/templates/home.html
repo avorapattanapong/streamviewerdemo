@@ -4,6 +4,11 @@
     <meta charset="utf-8">
 
     <title th:text="hello"></title>
+    <script th:inline="javascript">
+    /*<![CDATA[*/
+        var uri = /*[[${uri}]]*/ '';
+    /*]]>*/
+    </script>
 </head>
 
 <body>
