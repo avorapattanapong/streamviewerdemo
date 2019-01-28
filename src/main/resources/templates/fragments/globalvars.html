@@ -1,0 +1,19 @@
+<!-- This html file will contain all the global variables fragments-->
+
+<!DOCTYPE html>
+
+<!-- Create multiple global variables by adding new html tags defining thymeleaf fragments -->
+
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<meta th:fragment="csrfToken" id="_csrf" name="_csrf" th:content="${_csrf.token}"/>
+<meta th:fragment="csrfParamName" id="_csrf_parameter_name" name="_csrf_parameter_name" th:content="${_csrf.parameterName}"/>
+<meta th:fragment="csrfHeaderName" id="_csrf_header_name" name="_csrf_header_name" th:content="${_csrf.headerName}"/>
+<meta th:fragment="csrfTimeout" id="_csrf_timeout" name="_csrf_timeout" http-equiv="refresh" th:content="${@environment.getProperty('server.session.timeout')}"/>
+
+<script th:fragment="csrf" th:inline="javascript">
+    // These are created so that the csrf token is available anywhere
+    var csrfParameterName = /*[[${_csrf.parameterName}]]*/ 'csrf-token-parameter-name';
+    var csrfHeaderName = /*[[${_csrf.headerName}]]*/ 'csrf-token-header-name';
+    var csrfToken = /*[[${_csrf.token}]]*/ 'csrf-token';
+</script>
+</html>
