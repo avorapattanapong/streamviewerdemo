@@ -5,20 +5,20 @@ import { NavLink } from 'react-router-dom'
 import { Route } from 'react-router-dom'
 import Paragraph from "./components/paragraph";
 import Welcome from "./welcome";
+import Stream from "./stream";
 
 class App extends React.Component {
     render() {
         console.log(user);
         return(
-            /*<div id="nav">
+            <div id="nav">
                 <NavLink exact to="/one">One</NavLink>
                 <NavLink exact to="/two">Two</NavLink>
                 <div className="content">
-                    <Route exact path="/one" render={()=> <Paragraph message="paragraphOne"/>} />
-                    <Route exact path="/two" render={()=> <Paragraph message="paragraphTwo"/>} />
+                    <Route exact path="/one" render={()=> <Welcome name={user.name} />} />
+                    <Route exact path="/two" render={()=> <Stream/>} />
                 </div>
-            </div>*/
-            <div><Welcome name={user.name} /></div>
+            </div>
         )
     }
 }
