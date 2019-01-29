@@ -16,4 +16,8 @@
     var csrfHeaderName = /*[[${_csrf.headerName}]]*/ 'csrf-token-header-name';
     var csrfToken = /*[[${_csrf.token}]]*/ 'csrf-token';
 </script>
+
+<script th:fragment="contextPath" th:inline="javascript">
+    var contextPath = document.querySelectorAll("#_context_path")[0].getAttribute('href');
+</script>
 </html>

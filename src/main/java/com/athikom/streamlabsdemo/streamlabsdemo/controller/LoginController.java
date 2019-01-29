@@ -65,12 +65,6 @@ public class LoginController {
                 "state="+state;
     }
 
-    @RequestMapping(value="/auth", method = RequestMethod.POST, consumes = APPLICATION_JSON_VALUE)
-    public ResponseEntity<Object> authorizeToken(MultiValueMap paramMap, HttpSession session) {
-        String state = (String)session.getAttribute("state");
-        return new ResponseEntity<>(HttpStatus.OK);
-    }
-
 
     @RequestMapping("/handleoauth")
     public String oauthHandler(HttpSession session, @RequestParam("code") String code, @RequestParam("scope") String scope, @RequestParam("state") String state) {
@@ -81,7 +75,7 @@ public class LoginController {
 
         try {
             AccessToken token = twitchApi.getAccessToken(scope, code);
-            List<User> user = twitchApi.getUser(token.getAccessToken());
+            List<User> user = twitchApi.getUser(token.getAccessToken(),null);
 
             List<GrantedAuthority> authorities = new ArrayList<>();
             authorities.add(new SimpleGrantedAuthority("ROLE_USER"));

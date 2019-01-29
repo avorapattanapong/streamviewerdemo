@@ -1,7 +1,12 @@
 <!doctype html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="utf-8">
+    <meta charset="utf-8"/>
+    <meta id="_context_path" name="_context_path" th:href="@{/}"/>
+    <meta th:replace="fragments/globalvars :: contextPath" />
+    <meta th:replace="fragments/globalvars :: csrfToken" />
+    <meta th:replace="fragments/globalvars :: csrfParamName" />
+    <meta th:replace="fragments/globalvars :: csrf" />
 
     <title th:text="hello"></title>
     <script th:inline="javascript">

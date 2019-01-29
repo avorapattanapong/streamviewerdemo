@@ -34,6 +34,12 @@ public class TwitchApiImpl implements TwitchApi {
     @Value("${twitch.api.redirect-url:}")
     private String redirectUrl;
 
+    @Value("${twitch.api.v5.url:}")
+    private String apiV5Url;
+
+    @Value("${twitch.api.new.url:}")
+    private String apiNewUrl;
+
     HttpClient client;
 
     private void getClient(){
@@ -126,7 +132,7 @@ public class TwitchApiImpl implements TwitchApi {
     }
 
     @Override
-    public List<User> getUser(String code) throws Exception {
+    public List<User> getUser(String code, String loginName) throws Exception {
         if(this.client == null) {
             getClient();
         }
@@ -135,6 +141,9 @@ public class TwitchApiImpl implements TwitchApi {
         headers.put("Accept", "application/json");
         headers.put(HttpHeaders.AUTHORIZATION, "Bearer " + code);
         Map<String, String> params = new HashMap<>();
+        if(loginName != null && !loginName.equals("")) {
+            params.put("login", loginName);
+        }
 
         String result = get(url, params, headers);
         JSONObject jsonObj = new JSONObject(result);
@@ -143,8 +152,13 @@ public class TwitchApiImpl implements TwitchApi {
         List<User> users = new ArrayList<>();
         for(int i = 0; i < data.length(); i ++) {
             JSONObject userObj = data.getJSONObject(i);
+            String email = "";
+            userObj.has("email");
+            if(userObj.has("email")) {
+                email = userObj.getString("email");
+            }
             User user = new User(
-                    userObj.getString("email"),
+                    email,
                     userObj.getString("display_name"),
                     userObj.getInt("id"),
                     userObj.getString("login"));
@@ -152,5 +166,66 @@ public class TwitchApiImpl implements TwitchApi {
         }
 
         return users;
+    }
+
+    @Override
+    public void getEvents(String streamerName) throws Exception {
+        if(this.client == null) {
+            getClient();
+        }
+
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Accept", "application/json");
+        headers.put("Client-ID",clientId);
+        Map<String, String> params = new HashMap<>();
+
+        String streamId = getStreamId(streamerName);
+        String result = get(apiV5Url+"/channels/"+ streamId +"/events", params, headers);
+        JSONObject jsonObj = new JSONObject(result);
+        JSONArray data = jsonObj.getJSONArray("data");
+    }
+
+    @Override
+    public String getStreamId(String streamerName) throws Exception {
+        if(this.client == null) {
+            getClient();
+        }
+
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Accept", "application/json");
+        headers.put("Client-ID",clientId);
+        Map<String, String> params = new HashMap<>();
+        params.put("user_login", streamerName);
+
+        String result = get(apiNewUrl +"/streams", params, headers);
+        JSONObject jsonObj = new JSONObject(result);
+        JSONArray data = jsonObj.getJSONArray("data");
+        JSONObject user = data.getJSONObject(0);
+        return user.getString("id");
+    }
+
+    @Override
+    public List<String> getVideoIds(String streamerName, String code, Integer limit) throws Exception {
+        List<User> users = getUser(code, streamerName);
+        if(users.size() == 0) {
+            throw new Exception("Error user not found");
+        }
+
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Accept", "application/json");
+        headers.put("Client-ID",clientId);
+        Map<String, String> params = new HashMap<>();
+        params.put("user_id", users.get(0).getId().toString());
+        params.put("first", limit.toString());
+
+        String result = get(apiNewUrl +"/videos", params, headers);
+        JSONObject jsonObj = new JSONObject(result);
+
+        List<String> videoIds = new ArrayList<>();
+        JSONArray data = jsonObj.getJSONArray("data");
+        for(int i = 0; i < data.length(); i++) {
+            videoIds.add(data.getJSONObject(i).getString("id"));
+        }
+        return videoIds;
     }
 }
