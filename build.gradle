@@ -31,7 +31,7 @@ repositories {
 node {
     download = true
     // Set the work directory where node_modules should be located
-    nodeModulesDir = file("${project.projectDir}/src/main/frontend")
+    nodeModulesDir = file("${project.projectDir}")
 }
 
 dependencies {
