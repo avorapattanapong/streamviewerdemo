@@ -5,11 +5,13 @@ import com.athikom.streamlabsdemo.streamlabsdemo.models.User;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
+import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import org.json.JSONArray;
@@ -40,27 +42,40 @@ public class TwitchApiImpl implements TwitchApi {
     @Value("${twitch.api.new.url:}")
     private String apiNewUrl;
 
+    @Value("${webhookHandlerBaseUrl:}")
+    private String webhookHandlerBaseUrl;
+
     HttpClient client;
 
     private void getClient(){
         this.client = HttpClients.createDefault();
     }
 
-    private String post(String url, Map<String, String> params, Map<String, String> headers) throws Exception {
-        HttpPost post = new HttpPost(url);
+    private String post(String url, Map<String, String> params, Map<String, String> headers, Map<String, Object> jsonBodyParams) throws Exception {
+        URIBuilder builder = new URIBuilder(url);
+        if(params != null) {
+            for (Map.Entry<String, String> entry : params.entrySet()) {
+                builder.setParameter(entry.getKey(), entry.getValue());
+            }
+        }
+
+        HttpPost post = new HttpPost(builder.build());
 
         for (Map.Entry<String, String> entry : headers.entrySet()) {
             post.setHeader(entry.getKey(), entry.getValue());
         }
 
-        List<NameValuePair> urlParameters = new ArrayList<>();
-        for (Map.Entry<String, String> entry : params.entrySet()) {
-            urlParameters.add(new BasicNameValuePair(entry.getKey(), entry.getValue()));
+        if(jsonBodyParams != null) {
+            post.setHeader("Content-Type", "application/json");
+            JSONObject body = new JSONObject(jsonBodyParams);
+            StringEntity entity = new StringEntity(body.toString());
+            post.setEntity(entity);
         }
 
-        post.setEntity(new UrlEncodedFormEntity(urlParameters));
-
         HttpResponse response = this.client.execute(post);
+
+        StatusLine statusLine = response.getStatusLine();
+
         BufferedReader rd = new BufferedReader(
                 new InputStreamReader(response.getEntity().getContent()));
 
@@ -68,6 +83,18 @@ public class TwitchApiImpl implements TwitchApi {
         String line = "";
         while ((line = rd.readLine()) != null) {
             result.append(line);
+        }
+
+        if(statusLine.getStatusCode() >= 400) {
+            JSONObject object = new JSONObject(result.toString());
+            switch(statusLine.getStatusCode()) {
+                case 400:
+                    throw new TwitchApiBadRequestException(object.getString("message"));
+                case 404:
+                    throw new TwitchApiNotFoundException(object.getString("message"));
+                default:
+                    throw new TwitchApiInternalServerErrorException(object.getString("message"));
+            }
         }
         return result.toString();
     }
@@ -84,6 +111,19 @@ public class TwitchApiImpl implements TwitchApi {
         }
 
         HttpResponse response = client.execute(get);
+
+        StatusLine statusLine = response.getStatusLine();
+
+        if(statusLine.getStatusCode() >= 400) {
+            switch(statusLine.getStatusCode()) {
+                case 400:
+                    throw new TwitchApiBadRequestException(statusLine.getReasonPhrase());
+                case 404:
+                    throw new TwitchApiNotFoundException(statusLine.getReasonPhrase());
+                default:
+                    throw new TwitchApiInternalServerErrorException(statusLine.getReasonPhrase());
+            }
+        }
         BufferedReader rd = new BufferedReader(
                 new InputStreamReader(response.getEntity().getContent()));
 
@@ -97,7 +137,7 @@ public class TwitchApiImpl implements TwitchApi {
     }
 
     @Override
-    public AccessToken getAccessToken(String scope, String code) throws Exception {
+    public AccessToken getAccessToken(String scope, String code) throws TwitchApiException {
         String url = "https://id.twitch.tv/oauth2/token";
 
         if(this.client == null) {
@@ -115,31 +155,70 @@ public class TwitchApiImpl implements TwitchApi {
         params.put("redirect_uri", redirectUrl);
         params.put("scope", scope);
 
-        String result = post(url, params, headers);
+        try{
+            String result = post(url, params, headers, null);
 
-        JSONObject jsonObj = new JSONObject(result);
-        JSONArray scopeArray = jsonObj.getJSONArray("scope");
-        List<String> scopeString = new ArrayList<>();
-        for(int i = 0; i < scopeArray.length(); i++){
-            scopeString.add(scopeArray.getString(i));
+            JSONObject jsonObj = new JSONObject(result);
+            JSONArray scopeArray = jsonObj.getJSONArray("scope");
+            List<String> scopeString = new ArrayList<>();
+            for(int i = 0; i < scopeArray.length(); i++){
+                scopeString.add(scopeArray.getString(i));
+            }
+            return new AccessToken(
+                    jsonObj.getString("access_token"),
+                    scopeString,
+                    jsonObj.getString("refresh_token"),
+                    jsonObj.getInt("expires_in"),
+                    jsonObj.getString("token_type"));
+        } catch (TwitchApiException e) {
+            throw e;
+        } catch (Exception e) {
+            throw  new TwitchApiInternalServerErrorException(e.getMessage());
         }
-        return new AccessToken(
-                jsonObj.getString("access_token"),
-                scopeString,
-                jsonObj.getString("refresh_token"),
-                jsonObj.getInt("expires_in"),
-                jsonObj.getString("token_type"));
+
     }
 
     @Override
-    public List<User> getUser(String code, String loginName) throws Exception {
+    public User getLoggedInUser(String accessToken) throws TwitchApiException {
         if(this.client == null) {
             getClient();
         }
+
+        try {
+            return getUsers(accessToken, null).get(0);
+        } catch (TwitchApiException e) {
+            throw e;
+        } catch (Exception e) {
+            throw  new TwitchApiInternalServerErrorException(e.getMessage());
+        }
+    }
+
+    @Override
+    public List<User> getUsers(String loginName) throws TwitchApiException {
+        if(this.client == null) {
+            getClient();
+        }
+
+        try {
+            return getUsers(null, loginName);
+        } catch (TwitchApiException e) {
+            throw e;
+        } catch (Exception e) {
+            throw  new TwitchApiInternalServerErrorException(e.getMessage());
+        }
+    }
+
+    private List<User> getUsers(String accessToken, String loginName) throws Exception {
         String url = "https://api.twitch.tv/helix/users";
         Map<String, String> headers = new HashMap<>();
         headers.put("Accept", "application/json");
-        headers.put(HttpHeaders.AUTHORIZATION, "Bearer " + code);
+
+        if(accessToken != null) {
+            headers.put(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken);
+        } else {
+            headers.put("Client-ID",clientId);
+        }
+
         Map<String, String> params = new HashMap<>();
         if(loginName != null && !loginName.equals("")) {
             params.put("login", loginName);
@@ -169,63 +248,95 @@ public class TwitchApiImpl implements TwitchApi {
     }
 
     @Override
-    public void getEvents(String streamerName) throws Exception {
-        if(this.client == null) {
-            getClient();
-        }
-
-        Map<String, String> headers = new HashMap<>();
-        headers.put("Accept", "application/json");
-        headers.put("Client-ID",clientId);
-        Map<String, String> params = new HashMap<>();
-
-        String streamId = getStreamId(streamerName);
-        String result = get(apiV5Url+"/channels/"+ streamId +"/events", params, headers);
-        JSONObject jsonObj = new JSONObject(result);
-        JSONArray data = jsonObj.getJSONArray("data");
-    }
-
-    @Override
-    public String getStreamId(String streamerName) throws Exception {
-        if(this.client == null) {
-            getClient();
-        }
-
-        Map<String, String> headers = new HashMap<>();
-        headers.put("Accept", "application/json");
-        headers.put("Client-ID",clientId);
-        Map<String, String> params = new HashMap<>();
-        params.put("user_login", streamerName);
-
-        String result = get(apiNewUrl +"/streams", params, headers);
-        JSONObject jsonObj = new JSONObject(result);
-        JSONArray data = jsonObj.getJSONArray("data");
-        JSONObject user = data.getJSONObject(0);
-        return user.getString("id");
-    }
-
-    @Override
-    public List<String> getVideoIds(String streamerName, String code, Integer limit) throws Exception {
-        List<User> users = getUser(code, streamerName);
+    public List<String> getVideoIds(String streamerName, Integer limit) throws TwitchApiException {
+        List<User> users = getUsers(streamerName);
         if(users.size() == 0) {
-            throw new Exception("Error user not found");
+            throw new TwitchApiNotFoundException("Error user not found");
         }
 
         Map<String, String> headers = new HashMap<>();
         headers.put("Accept", "application/json");
         headers.put("Client-ID",clientId);
+
         Map<String, String> params = new HashMap<>();
         params.put("user_id", users.get(0).getId().toString());
         params.put("first", limit.toString());
 
-        String result = get(apiNewUrl +"/videos", params, headers);
-        JSONObject jsonObj = new JSONObject(result);
+        try {
+            String result = get(apiNewUrl + "/videos", params, headers);
+            JSONObject jsonObj = new JSONObject(result);
 
-        List<String> videoIds = new ArrayList<>();
-        JSONArray data = jsonObj.getJSONArray("data");
-        for(int i = 0; i < data.length(); i++) {
-            videoIds.add(data.getJSONObject(i).getString("id"));
+            List<String> videoIds = new ArrayList<>();
+            JSONArray data = jsonObj.getJSONArray("data");
+            for (int i = 0; i < data.length(); i++) {
+                videoIds.add(data.getJSONObject(i).getString("id"));
+            }
+            return videoIds;
+        } catch (TwitchApiException e) {
+            throw e;
+        } catch (Exception e) {
+            throw  new TwitchApiInternalServerErrorException(e.getMessage());
         }
-        return videoIds;
+    }
+
+    @Override
+    public void subscribeUserFollowsWebhooks(String streamerName) throws TwitchApiException {
+        User user = getUsers(streamerName).get(0);
+
+        try{
+            URIBuilder builder = new URIBuilder(apiNewUrl + "/users/follows");
+            builder.addParameter("first", "1");
+            builder.addParameter("to_id", user.getId().toString());
+            subscribeWebhooks(true, builder.toString(), webhookHandlerBaseUrl + "/userFollows");
+        } catch (TwitchApiException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new TwitchApiInternalServerErrorException(e.getMessage());
+        }
+    }
+
+    @Override
+    public void subscribeStreamChangedWebhooks(String streamerName) throws TwitchApiException {
+        User user = getUsers(streamerName).get(0);
+        try{
+            URIBuilder builder = new URIBuilder(apiNewUrl + "/streams");
+            builder.addParameter("user_id", user.getId().toString());
+            subscribeWebhooks(true, builder.toString(), webhookHandlerBaseUrl + "/streamChanged");
+        } catch (TwitchApiException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new TwitchApiInternalServerErrorException(e.getMessage());
+        }
+    }
+
+    @Override
+    public void subscribeUserUserChangedWebhooks(String streamerName) throws TwitchApiException {
+        User user = getUsers(streamerName).get(0);
+        try{
+            URIBuilder builder = new URIBuilder(apiNewUrl + "/users");
+            builder.addParameter("id", user.getId().toString());
+            subscribeWebhooks(true, builder.toString(), webhookHandlerBaseUrl + "/userChanged");
+        } catch (TwitchApiException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new TwitchApiInternalServerErrorException(e.getMessage());
+        }
+    }
+
+    private void subscribeWebhooks(Boolean subscribe, String eventUrl, String callbackUrl) throws Exception {
+        String url = apiNewUrl + "/webhooks/hub";
+
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Accept", "application/json");
+        headers.put("Client-ID",clientId);
+
+        Map<String, Object> jsonBody = new HashMap<>();
+        jsonBody.put("hub.callback", callbackUrl);
+        jsonBody.put("hub.mode", subscribe? "subscribe":"unsubscribe");
+        jsonBody.put("hub.topic", eventUrl);
+        jsonBody.put("hub.lease_seconds", 30);
+
+        //No response body
+        post(url, null, headers, jsonBody);
     }
 }

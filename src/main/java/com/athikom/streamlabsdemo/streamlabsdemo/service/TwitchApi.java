@@ -7,13 +7,17 @@ import java.util.List;
 
 public interface TwitchApi {
 
-    AccessToken getAccessToken(String scope, String code) throws Exception;
+    AccessToken getAccessToken(String scope, String code) throws TwitchApiException;
 
-    List<User> getUser(String code, String loginName) throws Exception;
+    User getLoggedInUser(String accessToken) throws TwitchApiException;
 
-    void getEvents(String streamerName) throws Exception;
+    List<User> getUsers(String loginName) throws TwitchApiException;
 
-    String getStreamId(String streamerName) throws Exception;
+    List<String> getVideoIds(String streamerName, Integer limit) throws TwitchApiException;
 
-    List<String> getVideoIds(String streamerName, String code, Integer limit) throws Exception;
+    void subscribeUserFollowsWebhooks(String streamerName) throws TwitchApiException;
+
+    void subscribeStreamChangedWebhooks(String streamerName) throws TwitchApiException;
+
+    void subscribeUserUserChangedWebhooks(String streamerName) throws TwitchApiException;
 }

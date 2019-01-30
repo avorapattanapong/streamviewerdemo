@@ -41,6 +41,19 @@ export default class Stream extends React.Component {
                     console.log("failed")
                 }
             });
+
+            data[(csrfParameterName)] = csrfToken;
+            $.ajax({
+                url: "/subscribe",
+                data: data,
+                method: "post",
+                success: function() {
+                    console.log("success")
+                },
+                error: function(){
+                    console.log("failed")
+                }
+            });
         });
     }
 

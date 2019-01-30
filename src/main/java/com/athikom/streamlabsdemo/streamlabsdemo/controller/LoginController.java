@@ -40,7 +40,7 @@ public class LoginController {
     @Value("${twitch.api.secret:}")
     private String secretId;
 
-    private String redirectUrl = "http://localhost:8123/handleoauth";
+    private String redirectUrl = "https://streamlabsdemo.herokuapp.com/handleoauth";
 
     @RequestMapping("/login")
     public String login(){
@@ -67,23 +67,24 @@ public class LoginController {
 
 
     @RequestMapping("/handleoauth")
-    public String oauthHandler(HttpSession session, @RequestParam("code") String code, @RequestParam("scope") String scope, @RequestParam("state") String state) {
+    public String oauthHandler(HttpSession session, @RequestParam("code") String authorizationCode, @RequestParam("scope") String scope, @RequestParam("state") String state) {
         String sessionState = (String)session.getAttribute("state");
         if (!sessionState.equals(state)) {
             return "error";
         }
 
         try {
-            AccessToken token = twitchApi.getAccessToken(scope, code);
-            List<User> user = twitchApi.getUser(token.getAccessToken(),null);
+            AccessToken token = twitchApi.getAccessToken(scope, authorizationCode);
+            User user = twitchApi.getLoggedInUser(token.getAccessToken());
 
             List<GrantedAuthority> authorities = new ArrayList<>();
             authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
-            Authentication authentication = new UsernamePasswordAuthenticationToken(user.get(0), token, authorities);
+            Authentication authentication = new UsernamePasswordAuthenticationToken(user, token, authorities);
             SecurityContext context = new SecurityContextImpl(authentication);
             SecurityContextHolder.setContext(context);
         } catch(Exception e) {
             logger.error("error", e);
+            return "error";
         }
 
         return "redirect:/";

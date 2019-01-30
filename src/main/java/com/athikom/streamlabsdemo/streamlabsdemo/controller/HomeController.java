@@ -40,10 +40,21 @@ public class HomeController {
     @RequestMapping("/getVideoIds")
     public ResponseEntity<List<String>> getVideoIds(@RequestParam("streamerName")String streamerName) {
         try {
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            AccessToken token = (AccessToken)auth.getCredentials();
-            List<String> videoIds = twitchApi.getVideoIds(streamerName, token.getAccessToken(), 10);
+            List<String> videoIds = twitchApi.getVideoIds(streamerName, 10);
             return new ResponseEntity<>(videoIds, HttpStatus.OK);
+        } catch(Exception e) {
+            logger.error("Error getting events", e);
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @RequestMapping("/subscribe")
+    public ResponseEntity<Object> subscribeWebhooks(@RequestParam("streamerName")String streamerName) {
+        try {
+            twitchApi.subscribeUserFollowsWebhooks(streamerName);
+            twitchApi.subscribeStreamChangedWebhooks(streamerName);
+            twitchApi.subscribeUserUserChangedWebhooks(streamerName);
+            return new ResponseEntity<>(HttpStatus.OK);
         } catch(Exception e) {
             logger.error("Error getting events", e);
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
