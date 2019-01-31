@@ -86,10 +86,10 @@ export default class Stream extends React.Component {
             );
         });
         return (
-            <AuthenticatedLayout title="Stream" handleBack={()=>{console.log("back")}}>
+            <AuthenticatedLayout title="Stream" handleBack={this.props.handleBack}>
                 <main className="landing-main">
                     <Typography component="h2" variant="h2" gutterBottom>
-                        Current Stream by User
+                        Current Stream by {this.props.streamerName}
                     </Typography>
                     <Grid container spacing={24} classes={{container:"grid-bottom-margin"}}>
                         <Grid item xs={12}>
