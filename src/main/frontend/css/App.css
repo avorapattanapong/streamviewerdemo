@@ -1,0 +1,90 @@
+.Login {
+  text-align: center;
+  background-color: #fafafa;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.App {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.AuthenticatedLayout {
+  flex-grow: 1;
+  background-color:#fafafa;
+}
+
+.App-bar {
+  background-color: #3D80F7 !important;
+}
+
+.App-bar-padding {
+  padding-left: 3em;
+  padding-right: 3em;
+}
+
+.App-bar-back-icon {
+  margin-left: -15px !important;
+  margin-right: 10px !important;
+}
+
+header.login-header {
+  padding: 2em 2em 6em 2em;
+}
+
+main.login-main {
+  padding: 0 2em 10em 2em;
+}
+
+main.landing-main {
+  padding:2em 4em;
+}
+
+.login-paper {
+  padding: 1em 2em 2em 2em;
+}
+
+.login-button {
+  background-color:#6441A4 !important;
+  padding: 1em !important;
+}
+
+.login-description {
+  padding-bottom: 3em;
+}
+
+.form-container {
+  display: flex;
+  flexWrap: wrap;
+}
+
+.form-control-button {
+  margin-top: 28px !important;
+  margin-left: 50px !important;
+}
+
+.button-override {
+  background-color: #3D80F7 !important
+}
+
+body {
+  margin:0 !important;
+}
+
+
+.snackbar-close {
+  padding: 1em;
+}
+
+.card-css {
+  max-width: 400px;
+}
+
+.grid-bottom-margin {
+  margin-bottom:5em !important;
+}

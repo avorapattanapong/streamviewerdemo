@@ -19,10 +19,11 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                         "/static/js/**",
                         "/css/**",
                         "/js/**",
-                        "/images/**",
+                        "/img/**",
                         "/webjars/**",
                         "/resources/**",
-                        "/webhook/process/**").permitAll()
+                        "/webhook/process/**",
+                        "/dist/**").permitAll()
                 .anyRequest().authenticated()
                 .and()
                 .formLogin()

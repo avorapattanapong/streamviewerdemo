@@ -7,7 +7,8 @@ var DEST = path.resolve(__dirname, ROOT + '/dist/');
 module.exports = {
     mode: 'development',
     entry: {
-        index: SRC + '/index.jsx'
+        index: SRC + '/index.jsx',
+        login: SRC + '/Login.js'
     },
     output: {
         filename: '[name].bundle.js',
@@ -43,6 +44,21 @@ module.exports = {
                     {loader:'css-loader'}
                 ]
             },
+            {
+                test: /\.(woff(2)?|ttf|eot|svg)(\?v=\d+\.\d+\.\d+)?$/,
+                use: [{
+                    loader: 'file-loader',
+                    options: {
+                        name: '[name].[ext]',
+                        outputPath: 'fonts/'
+                    }
+                }]
+            },
+            {
+                test: /\.png$/,
+                exclude: /node_modules/,
+                loader: 'file-loader?name=img/[name].[ext]'
+            }
         ]
     },
     resolve: {
@@ -51,6 +67,6 @@ module.exports = {
             path.resolve(ROOT, 'less'),
             'node_modules'
         ],
-        extensions: ['*', '.js', '.jsx']
+        extensions: ['*', '.js', '.jsx','.css']
     },
 };
